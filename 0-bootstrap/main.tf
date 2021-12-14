@@ -93,11 +93,7 @@ module "seed_bootstrap" {
   ]
 }
 
-resource "google_billing_account_iam_member" "tf_billing_admin" {
-  billing_account_id = var.billing_account
-  role               = "roles/billing.admin"
-  member             = "serviceAccount:${module.seed_bootstrap.terraform_sa_email}"
-}
+
 
 // Comment-out the cloudbuild_bootstrap module and its outputs if you want to use Jenkins instead of Cloud Build
 module "cloudbuild_bootstrap" {
@@ -140,8 +136,8 @@ module "cloudbuild_bootstrap" {
     environment       = "bootstrap"
     application_name  = "cloudbuild-bootstrap"
     billing_code      = "1234"
-    primary_contact   = "example1"
-    secondary_contact = "example2"
+    primary_contact   = "heikoliedtke"
+    secondary_contact = "maxmusterfrau"
     business_code     = "abcd"
     env_code          = "b"
   }
