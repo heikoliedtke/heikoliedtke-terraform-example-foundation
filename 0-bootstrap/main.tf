@@ -99,7 +99,10 @@ module "seed_bootstrap" {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 3c91fcf20cf06ad8618b73a36f74241c7c483bf6
 
 
 // Comment-out the cloudbuild_bootstrap module and its outputs if you want to use Jenkins instead of Cloud Build
@@ -263,4 +266,9 @@ resource "google_folder_iam_member" "folder_tf_compute_security_resource_admin" 
 #   role   = "roles/browser"
 #   member = "serviceAccount:${module.jenkins_bootstrap.jenkins_agent_sa_email}"
 # }
+<<<<<<< HEAD
 >>>>>>> b9c1509 (changed to my specific org)
+=======
+=======
+>>>>>>> origin
+>>>>>>> 3c91fcf20cf06ad8618b73a36f74241c7c483bf6
