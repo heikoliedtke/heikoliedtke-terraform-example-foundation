@@ -20,14 +20,15 @@
 
 module "base_shared_vpc_host_project" {
   source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  name                        = format("%s-%s-shared-base", var.project_prefix, var.environment_code)
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
+  version                     = "~> 14.0"
+  random_project_id           = true
+  random_project_id_length    = 4
+  name                        = format("%s-%s-shared-base", local.project_prefix, var.environment_code)
+  org_id                      = local.org_id
+  billing_account             = local.billing_account
   folder_id                   = google_folder.env.id
   disable_services_on_destroy = false
+  depends_on                  = [time_sleep.wait_60_seconds]
   activate_apis = [
     "compute.googleapis.com",
     "dns.googleapis.com",
@@ -46,21 +47,22 @@ module "base_shared_vpc_host_project" {
     business_code     = "abcd"
     env_code          = var.environment_code
   }
-  budget_alert_pubsub_topic   = var.base_network_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.base_network_project_alert_spent_percents
-  budget_amount               = var.base_network_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.base_network_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.base_network_alert_spent_percents
+  budget_amount               = var.project_budget.base_network_budget_amount
 }
 
 module "restricted_shared_vpc_host_project" {
   source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  name                        = format("%s-%s-shared-restricted", var.project_prefix, var.environment_code)
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
+  version                     = "~> 14.0"
+  random_project_id           = true
+  random_project_id_length    = 4
+  name                        = format("%s-%s-shared-restricted", local.project_prefix, var.environment_code)
+  org_id                      = local.org_id
+  billing_account             = local.billing_account
   folder_id                   = google_folder.env.id
   disable_services_on_destroy = false
+  depends_on                  = [time_sleep.wait_60_seconds]
   activate_apis = [
     "compute.googleapis.com",
     "dns.googleapis.com",
@@ -81,7 +83,7 @@ module "restricted_shared_vpc_host_project" {
     business_code     = "abcd"
     env_code          = var.environment_code
   }
-  budget_alert_pubsub_topic   = var.restricted_network_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.restricted_network_project_alert_spent_percents
-  budget_amount               = var.restricted_network_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.restricted_network_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.restricted_network_alert_spent_percents
+  budget_amount               = var.project_budget.restricted_network_budget_amount
 }

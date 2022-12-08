@@ -9,23 +9,29 @@ See [GLOSSARY.md](./GLOSSARY.md).
 ## Problems
 
 - [Common issues](#common-issues)
-- [Caller does not have permission in the Organization](#Caller-does-not-have-permission-in-the-organization)
-- [Billing quota exceeded](#Billing-quota-exceeded)
+- [Caller does not have permission in the Organization](#caller-does-not-have-permission-in-the-organization)
+- [Billing quota exceeded](#billing-quota-exceeded)
+- [Terraform Error acquiring the state lock](#terraform-error-acquiring-the-state-lock)
 
 - - -
 
 ## Common issues
 
 - [Project quota exceeded](#project-quota-exceeded)
+- [Default branch setting](#default-branch-setting)
 - [Terraform State Snapshot lock](#terraform-state-snapshot-lock)
 - [Application authenticated using end user credentials](#application-authenticated-using-end-user-credentials)
 - [Cannot assign requested address error in Cloud Shell](#cannot-assign-requested-address-error-in-cloud-shell)
+- [Error: Unsupported attribute](#error-unsupported-attribute)
+- [Error: Error adding network peering](#error-error-adding-network-peering)
+
+- - -
 
 ### Project quota exceeded
 
 **Error message:**
 
-```
+```text
 Error code 8, message: The project cannot be created because you have exceeded your allotted project quota
 ```
 
@@ -46,19 +52,47 @@ use the email address of `terraform_service_account` that is created by the Terr
 
 - If you see other quota errors, see the [Quota documentation](https://cloud.google.com/docs/quota).
 
-### Terraform State Snapshot lock
+### Default branch setting
 
 **Error message:**
 
-When running the build for the branch `production` in step 3-networks in your **Foundation Pipeline** the build fails with:
-
-```
-state snapshot was created by Terraform v0.x.x, which is newer than current v0.13.7; upgrade to Terraform v0.x.x or greater to work with this state
+```text
+error: src refspec master does not match any
 ```
 
 **Cause:**
 
-The manual deploy step for the shared environment in [3-networks](../3-networks#deploying-with-cloud-build) was executed with a Terraform version newer than version v0.13.7 used in the **Foundation Pipeline**.
+This could be due to init.defaultBranch being set to something other than
+`main`.
+
+**Solution:**
+
+1. Determine your default branch:
+
+   ```bash
+   git config init.defaultBranch
+   ```
+
+   Outputs `main` if you are in the main branch.
+1. If your default branch is not set to `main`, set it:
+
+   ```bash
+   git config --global init.defaultBranch main
+   ```
+
+### Terraform State Snapshot lock
+
+**Error message:**
+
+When running the build for the branch `production` in step 3-networks in your **Foundation CI/CD Pipeline** the build fails with:
+
+```
+state snapshot was created by Terraform v1.x.x, which is newer than current v1.3.0; upgrade to Terraform v1.x.x or greater to work with this state
+```
+
+**Cause:**
+
+The manual deploy step for the shared environment in [3-networks](../3-networks#deploying-with-cloud-build) was executed with a Terraform version newer than version v1.3.0 used in the **Foundation CI/CD Pipeline**.
 
 **Solution:**
 
@@ -66,31 +100,24 @@ You have two options:
 
 #### Downgrade your local Terraform version
 
-You will need to re-run the deploy of the 3-networks shared environment with Terraform v0.13.7.
+You will need to re-run the deploy of the 3-networks shared environment with Terraform v1.3.0.
 
 Steps:
 
 - Go to folder `gcp-networks/envs/shared/`.
 - Update `backend.tf` with your bucket name from the 0-bootstrap step.
-- Run `terraform destroy` in the folder using the Terraform v0.x.x version.
+- Run `terraform destroy` in the folder using the Terraform v1.x.x version.
 - Delete the Terraform state file in `gs://YOUR-TF-STATE-BUCKET/terraform/networks/envs/shared/default.tfstate`. This bucket is in your **Seed Project**.
-- Install Terraform v0.13.7.
-- Re-run the manual deploy of 3-networks shared environment using Terraform v0.13.7.
+- Install Terraform v1.3.0.
+- Re-run the manual deploy of 3-networks shared environment using Terraform v1.3.0.
 
 #### Upgrade your 0-bootstrap runner image Terraform version
 
-The current version of the foundation does not work with terraform version `0.15.x`,upgrade option is only valid to upgrade to version `0.14.x`.
+Replace `1.x.x` with the actual version of your local Terraform version in the following instructions:
 
-Replace `0.x.x` with the actual version of your local Terraform version in the following instructions:
-
-- Go to the [Terraform release](https://releases.hashicorp.com/terraform/) page.
-- Enter the `terraform_0.x.x` release folder.
-- Download the file `terraform_0.x.x_SHA256SUMS`.
-- Get the value of the SHA 256 SUM for the amd64 linux version of the release 0.x.x (`terraform_0.x.x_linux_amd64.zip`)
 - Go to folder `0-bootstrap`.
-- Edit the module `cloudbuild_bootstrap` in the Terraform [main.tf](../0-bootstrap/main.tf) file:
-  - Upgrade `terraform_version` from `"0.13.7"` to `"0.x.x"`
-  - Update `terraform_version_sha256sum` with the value you got from the file `terraform_0.x.x_SHA256SUMS`
+- Edit the local `terraform_version` in the Terraform [cb.tf](../0-bootstrap/cb.tf) file:
+  - Upgrade local `terraform_version` from `"1.3.0"` to `"1.x.x"`
 - Run `terraform init`.
 - Run `terraform plan` and review the output.
 - Run `terraform apply`.
@@ -101,19 +128,19 @@ Replace `0.x.x` with the actual version of your local Terraform version in the f
 
 When running `gcloud` commands in Cloud Shell like
 
-```
+```bash
 gcloud scc notifications describe <scc_notification_name> --organization YOUR_ORGANIZATION_ID
 ```
 
 or
 
-```
+```bash
 gcloud access-context-manager policies list --organization YOUR_ORGANIZATION_ID --format="value(name)"
 ```
 
 you receive the error:
 
-```
+```text
 Error 403: Your application has authenticated using end user credentials from the Google Cloud SDK or Google Cloud Shell which are not supported by the X.googleapis.com.
 We recommend configuring the billing/quota_project setting in gcloud or using a service account through the auth/impersonate_service_account setting.
 For more information about service accounts and how to use them in your application, see https://cloud.google.com/docs/authentication/.
@@ -129,13 +156,13 @@ you can re-run the command using impersonation or providing a billing project:
 
 - Impersonate the Terraform Service Account
 
-```
---impersonate-service-account=org-terraform@<SEED_PROJECT_ID>.iam.gserviceaccount.com
+```bash
+--impersonate-service-account=terraform-org-sa@<SEED_PROJECT_ID>.iam.gserviceaccount.com
 ```
 
 - Provide a billing project
 
-```
+```bash
 --billing-project=<A-VALID-PROJECT-ID>
 ```
 
@@ -147,7 +174,7 @@ If you provide a billing project, you must have the `serviceusage.services.use` 
 
 When using [Google Cloud Shell](https://cloud.google.com/shell/docs) to deploy the code in ths repository, you may face an error like
 
-```
+```text
 dial tcp [2607:f8b0:400c:c15::5f]:443: connect: cannot assign requested address
 ```
 
@@ -166,13 +193,68 @@ At this time the alternatives are:
 
 If you use the workaround, the API list should include the ones that are [allowed](../policy-library/policies/constraints/serviceusage_allow_basic_apis.yaml) in the terraform-example-foundation policy library.
 
+### Error: Unsupported attribute
+
+**Error message:**
+
+```text
+Error: Unsupported attribute
+
+  on main.tf line 22, in locals:
+  22:   org_id               = data.terraform_remote_state.bootstrap.outputs.common_config.org_id
+    ├────────────────
+    │ data.terraform_remote_state.bootstrap.outputs is object with no attributes
+
+This object does not have an attribute named "common_config".
+```
+
+**Cause:**
+
+The stages after `0-bootstrap` use `terraform_remote_state` data source to read common configuration like the organization ID from the output of the `0-bootstrap` stage.
+The error means that the Terraform state of the `0-bootstrap` stage was not copied to the Terraform state bucket created in stage `0-bootstrap`.
+
+**Solution:**
+
+Follow the instructions at the end of the [Deploying with Cloud Build](../0-bootstrap/README.md#deploying-with-cloud-build) section in the `0-bootstrap` README to copy the Terraform state to the Cloud Storage bucket created in stage `0-bootstrap` and retry planning/applying the stage you are deploying.
+
+### Error: Error adding network peering
+
+**Error message:**
+
+```text
+Error: Error adding network peering: googleapi: Error 403: Rate Limit Exceeded
+Details:
+[
+  {
+    "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+    "domain": "compute.googleapis.com",
+    "metadatas": {
+      "containerId": "76352966089",
+      "containerType": "PROJECT",
+      "location": "global"
+    },
+    "reason": "CONCURRENT_OPERATIONS_QUOTA_EXCEEDED"
+  }
+]
+, rateLimitExceeded
+
+```
+
+**Cause:**
+
+In a deploy using the [Hub and Spoke](https://cloud.google.com/architecture/security-foundations/networking#hub-and-spoke) network mode, an error occurs when adding the network peering between the restricted Hub network and the restricted Spoke network or the base Hub network and the base Spoke network due to too many peering operations.
+
+**Solution:**
+
+This is a transient error and the deploy can be retried. Wait for at least a minute and retry the deploy.
+
 - - -
 
 ### Caller does not have permission in the Organization
 
 **Error message:**
 
-```
+```text
 Error: Error when reading or editing Organization Not Found : <organization-id>: googleapi: Error 403: The caller does not have permission, forbidden
 ```
 
@@ -188,7 +270,7 @@ You will need to request the roles to be granted to your user by your organizati
 
 - If the user **does have the role Organization Administrator** try the following:
 
-```
+```bash
 gcloud auth application-default login
 gcloud auth list # <- confirm that correct account has a star next to it
 ```
@@ -199,7 +281,7 @@ Re-run `terraform` after.
 
 **Error message:**
 
-```
+```text
 Error: Error setting billing account "XXXXXX-XXXXXX-XXXXXX" for project "projects/some-project": googleapi: Error 400: Precondition check failed., failedPrecondition
 ```
 
@@ -211,8 +293,98 @@ Most likely this is related to a billing quota issue.
 
 try
 
-```
+```bash
 gcloud alpha billing projects link projects/some-project --billing-account XXXXXX-XXXXXX-XXXXXX
 ```
 
 If output states `Cloud billing quota exceeded`, you can use the [Request Billing Quota Increase](https://support.google.com/code/contact/billing_quota_increase) form to request a billing quota increase.
+
+### Terraform Error acquiring the state lock
+
+**Error message:**
+
+```text
+Error: Error acquiring the state lock
+```
+
+**Cause:**
+
+This message means that you are trying to apply a Terraform configuration with a remote backend that is in a [locked state](https://www.terraform.io/language/state/locking).
+
+If the Terraform process was unable to finish due to an unexpected event, i.e build timeout or terraform process killed. It will keep the Terraform State **locked**.
+
+**Solution:**
+
+The following commands are an example of how to unlock the **development environment** from step 2-environments that is one part of the Foundation Example.
+It can also be applied in the same way to the other parts.
+
+1. Clone the repository where you got the Terraform State lock. The following example assumes **development environment** from step 2-environments:
+
+   ```bash
+   gcloud source repos clone gcp-environments --project=YOUR_CLOUD_BUILD_PROJECT_ID
+   ```
+
+1. Navigate into the repo and change to the development branch:
+
+   ```bash
+   cd gcp-environments
+   git checkout development
+   ```
+
+1. If your project does not have a remote backend you can jump skip the next 2 commands and jump to `terraform init` command.
+1. If your project has a remote backend you will have to update `backend.tf` with the remote state backend bucket.
+You can get this information from step `0-bootstrap` by running the following command:
+
+   ```bash
+   terraform output gcs_bucket_tfstate
+   ```
+
+1. Update `backend.tf` with the remote state backend bucket you got on previously inside `<YOUR-REMOTE-STATE-BACKEND-BUCKET>`:
+
+   ```bash
+   for i in `find -name 'backend.tf'`; do sed -i 's/UPDATE_ME/<YOUR-REMOTE-STATE-BACKEND-BUCKET>/' $i; done
+   ```
+
+1. Navigate into `envs/development` where your terraform config files are in and run terraform init:
+
+   ```bash
+   cd envs/development
+   terraform init
+   ```
+
+1. At this point, you will be able to get Terraform State lock information and unlock your state.
+1. After running terraform apply you should get an error message like the following:
+
+   ```text
+   terraform apply
+   Acquiring state lock. This may take a few moments...
+   ╷
+   │ Error: Error acquiring the state lock
+   │
+   │ Error message: writing "gs://<YOUR-REMOTE-STATE-BACKEND-BUCKET>/<PATH-TO-TERRAFORM-STATE>/<tf state file name>.tflock" failed: googleapi: Error 412: At least one
+   │ of the pre-conditions you specified did not hold., conditionNotMet
+   │ Lock Info:
+   │   ID:        1664568683005669
+   │   Path:      gs://<YOUR-REMOTE-STATE-BACKEND-BUCKET>/<PATH-TO-TERRAFORM-STATE>/<tf state file name>.tflock
+   │   Operation: OperationTypeApply
+   │   Who:       user@domain
+   │   Version:   1.0.0
+   │   Created:   2022-09-30 20:11:22.90644727 +0000 UTC
+   │   Info:
+   │
+   │
+   │ Terraform acquires a state lock to protect the state from being written
+   │ by multiple users at the same time. Please resolve the issue above and try
+   │ again. For most commands, you can disable locking with the "-lock=false"
+   │ flag, but this is not recommended.
+   ```
+
+1. With the lock `ID` you will be able to remove the Terraform State lock using `terraform force-unlock` command. It is a **strong recommendation** to review the official documentation regarding [terraform force-unlock](https://www.terraform.io/language/state/locking#force-unlock) command before executing it.
+1. After unlocking the Terraform State you will be able to execute a `terraform plan` for review of the state. The following links can help you to recover the Terraform State for your configuration and move on:
+    1. [Manipulating Terraform State](https://developer.hashicorp.com/terraform/cli/state)
+    1. [Moving Resources](https://developer.hashicorp.com/terraform/cli/state/move)
+    1. [Importing Infrastructure](https://developer.hashicorp.com/terraform/cli/import)
+
+**Terraform State lock possible causes:**
+
+- If you realize that the Terraform State lock was due to a build timeout increase the build timeout on [build configuration](https://github.com/terraform-google-modules/terraform-example-foundation/blob/master/build/cloudbuild-tf-apply.yaml#L15).

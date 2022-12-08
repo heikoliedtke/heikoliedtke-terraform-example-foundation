@@ -14,12 +14,4 @@
  * limitations under the License.
  */
 
-billing_account = "000000-000000-000000"
-
-org_id = "000000000000"
-
-terraform_service_account = "org-terraform@example-project-2334.iam.gserviceaccount.com"
-
-// Optional - for an organization with existing projects or for development/validation.
-// Must be the same value used in previous steps.
-//parent_folder = "01234567890"
+remote_state_bucket = "REMOTE_STATE_BUCKET"

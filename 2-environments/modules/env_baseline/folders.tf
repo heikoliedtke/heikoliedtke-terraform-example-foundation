@@ -15,19 +15,26 @@
  */
 
 /******************************************
-  Folder lookups
-*****************************************/
-
-data "google_active_folder" "common" {
-  display_name = "${var.folder_prefix}-common"
-  parent       = local.parent
-}
-
-/******************************************
   Environment Folder
 *****************************************/
 
 resource "google_folder" "env" {
-  display_name = "${var.folder_prefix}-${var.env}"
+  display_name = "${local.folder_prefix}-${var.env}"
   parent       = local.parent
+}
+
+resource "time_sleep" "wait_60_seconds" {
+  depends_on = [google_folder.env]
+
+  destroy_duration = "60s"
+}
+
+# The following code binds a tag to a resource.
+# For more details about binding tags to resources see: https://cloud.google.com/resource-manager/docs/tags/tags-creating-and-managing#attaching
+# For more details on how to use terraform binding resource see: https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/tags_tag_binding
+resource "google_tags_tag_binding" "folder_env" {
+  parent    = "//cloudresourcemanager.googleapis.com/${google_folder.env.id}"
+  tag_value = local.tags["environment_${var.env}"]
+
+  depends_on = [time_sleep.wait_60_seconds]
 }

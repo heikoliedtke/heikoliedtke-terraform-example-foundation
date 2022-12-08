@@ -27,20 +27,20 @@ terraform {
     }
     null = {
       source  = "hashicorp/null"
-      version = "~> 2.1"
+      version = "~> 3.0"
     }
 
     random = {
       source  = "hashicorp/random"
-      version = "~> 2.3"
+      version = "~> 3.1"
     }
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-example-foundation:app_env_base/v2.2.0"
+    module_name = "blueprints/terraform/terraform-example-foundation:app_env_base/v2.3.1"
   }
 
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-example-foundation:app_env_base/v2.2.0"
+    module_name = "blueprints/terraform/terraform-example-foundation:app_env_base/v2.3.1"
   }
 }

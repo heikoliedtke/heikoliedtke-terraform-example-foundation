@@ -20,14 +20,15 @@
 
 module "monitoring_project" {
   source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  name                        = "${var.project_prefix}-${var.environment_code}-monitoring"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
+  version                     = "~> 14.0"
+  random_project_id           = true
+  random_project_id_length    = 4
+  name                        = "${local.project_prefix}-${var.environment_code}-monitoring"
+  org_id                      = local.org_id
+  billing_account             = local.billing_account
   folder_id                   = google_folder.env.id
   disable_services_on_destroy = false
+  depends_on                  = [time_sleep.wait_60_seconds]
   activate_apis = [
     "logging.googleapis.com",
     "monitoring.googleapis.com",
@@ -43,7 +44,7 @@ module "monitoring_project" {
     business_code     = "abcd"
     env_code          = var.environment_code
   }
-  budget_alert_pubsub_topic   = var.monitoring_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.monitoring_project_alert_spent_percents
-  budget_amount               = var.monitoring_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.monitoring_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.monitoring_alert_spent_percents
+  budget_amount               = var.project_budget.monitoring_budget_amount
 }

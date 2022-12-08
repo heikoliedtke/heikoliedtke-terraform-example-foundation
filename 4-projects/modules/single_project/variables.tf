@@ -29,11 +29,6 @@ variable "billing_account" {
   type        = string
 }
 
-variable "impersonate_service_account" {
-  description = "Service account email of the account to impersonate to run Terraform"
-  type        = string
-}
-
 variable "project_suffix" {
   description = "The name of the GCP project. Max 16 characters with 3 character business unit code."
   type        = string
@@ -83,6 +78,18 @@ variable "vpc_type" {
   default     = ""
 }
 
+variable "shared_vpc_host_project_id" {
+  description = "Shared VPC host project ID"
+  type        = string
+  default     = ""
+}
+
+variable "shared_vpc_subnets" {
+  description = "List of the shared vpc subnets self links."
+  type        = list(string)
+  default     = []
+}
+
 variable "vpc_service_control_attach_enabled" {
   description = "Whether the project will be attached to a VPC Service Control Perimeter"
   type        = bool
@@ -95,22 +102,25 @@ variable "vpc_service_control_perimeter_name" {
   default     = null
 }
 
-variable "alert_spent_percents" {
-  description = "A list of percentages of the budget to alert on when threshold is exceeded"
-  type        = list(number)
-  default     = [0.5, 0.75, 0.9, 0.95]
-}
-
-variable "alert_pubsub_topic" {
-  description = "The name of the Cloud Pub/Sub topic where budget related messages will be published, in the form of `projects/{project_id}/topics/{topic_id}`"
+variable "vpc_service_control_sleep_duration" {
+  description = "The duration to sleep in seconds before adding the project to a shared VPC after the project is added to the VPC Service Control Perimeter"
   type        = string
-  default     = null
+  default     = "5s"
 }
 
-variable "budget_amount" {
-  description = "The amount to use as the budget"
-  type        = number
-  default     = 1000
+variable "project_budget" {
+  description = <<EOT
+  Budget configuration.
+  budget_amount: The amount to use as the budget.
+  alert_spent_percents: A list of percentages of the budget to alert on when threshold is exceeded.
+  alert_pubsub_topic: The name of the Cloud Pub/Sub topic where budget related messages will be published, in the form of `projects/{project_id}/topics/{topic_id}`.
+  EOT
+  type = object({
+    budget_amount        = optional(number, 1000)
+    alert_spent_percents = optional(list(number), [0.5, 0.75, 0.9, 0.95])
+    alert_pubsub_topic   = optional(string, null)
+  })
+  default = {}
 }
 
 variable "project_prefix" {
@@ -125,20 +135,20 @@ variable "enable_hub_and_spoke" {
   default     = false
 }
 
+variable "app_infra_pipeline_service_accounts" {
+  description = "The Service Accounts from App Infra Pipeline."
+  type        = map(string)
+  default     = {}
+}
+
 variable "sa_roles" {
-  description = "A list of roles to give the Service Account for the project (defaults to none)"
-  type        = list(string)
-  default     = []
+  description = "A list of roles to give the Service Account from App Infra Pipeline."
+  type        = map(list(string))
+  default     = {}
 }
 
 variable "enable_cloudbuild_deploy" {
   description = "Enable infra deployment using Cloud Build"
   type        = bool
   default     = false
-}
-
-variable "cloudbuild_sa" {
-  description = "The Cloud Build SA used for deploying infrastructure in this project. It will impersonate the new default SA created"
-  type        = string
-  default     = ""
 }

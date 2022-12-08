@@ -17,24 +17,49 @@
 locals {
   env_code        = element(split("", var.environment), 0)
   shared_vpc_mode = var.enable_hub_and_spoke ? "-spoke" : ""
+  source_repos    = keys(var.app_infra_pipeline_service_accounts)
+  pipeline_roles = var.enable_cloudbuild_deploy ? flatten([
+    for repo in local.source_repos : [
+      for role in var.sa_roles[repo] :
+      {
+        repo = repo
+        role = role
+        sa   = var.app_infra_pipeline_service_accounts[repo]
+      }
+    ]
+  ]) : []
+
+  network_user_role = var.enable_cloudbuild_deploy ? flatten([
+    for repo in local.source_repos : [
+      for subnet in var.shared_vpc_subnets :
+      {
+        repo   = repo
+        subnet = element(split("/", subnet), index(split("/", subnet), "subnetworks", ) + 1, )
+        region = element(split("/", subnet), index(split("/", subnet), "regions") + 1, )
+        sa     = var.app_infra_pipeline_service_accounts[repo]
+      }
+    ]
+  ]) : []
 }
 
 module "project" {
-  source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.impersonate_service_account
-  activate_apis               = distinct(concat(var.activate_apis, ["billingbudgets.googleapis.com"]))
-  name                        = "${var.project_prefix}-${var.business_code}-${local.env_code}-${var.project_suffix}"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = var.folder_id
+  source  = "terraform-google-modules/project-factory/google"
+  version = "~> 14.1"
 
-  svpc_host_project_id = var.vpc_type == "" ? "" : data.google_compute_network.shared_vpc[0].project
-  shared_vpc_subnets   = var.vpc_type == "" ? [] : data.google_compute_network.shared_vpc[0].subnetworks_self_links # Optional: To enable subnetting, replace to "module.networking_project.subnetwork_self_link"
+  random_project_id        = true
+  random_project_id_length = 4
+  activate_apis            = distinct(concat(var.activate_apis, ["billingbudgets.googleapis.com"]))
+  name                     = "${var.project_prefix}-${var.business_code}-${local.env_code}-${var.project_suffix}"
+  org_id                   = var.org_id
+  billing_account          = var.billing_account
+  folder_id                = var.folder_id
+
+  svpc_host_project_id = var.shared_vpc_host_project_id
+  shared_vpc_subnets   = var.shared_vpc_subnets # Optional: To enable subnetting, replace to "module.networking_project.subnetwork_self_link"
 
   vpc_service_control_attach_enabled = var.vpc_service_control_attach_enabled
   vpc_service_control_perimeter_name = var.vpc_service_control_perimeter_name
+  vpc_service_control_sleep_duration = var.vpc_service_control_sleep_duration
 
   labels = {
     environment       = var.environment
@@ -46,37 +71,35 @@ module "project" {
     env_code          = local.env_code
     vpc_type          = var.vpc_type
   }
-  budget_alert_pubsub_topic   = var.alert_pubsub_topic
-  budget_alert_spent_percents = var.alert_spent_percents
-  budget_amount               = var.budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.alert_spent_percents
+  budget_amount               = var.project_budget.budget_amount
 }
 
-# Additional roles to project deployment SA created by project factory
+# Additional roles to the App Infra Pipeline service account
 resource "google_project_iam_member" "app_infra_pipeline_sa_roles" {
-  for_each = toset(var.sa_roles)
-  project  = module.project.project_id
-  role     = each.value
-  member   = "serviceAccount:${module.project.service_account_email}"
-}
+  for_each = { for pr in local.pipeline_roles : "${pr.repo}-${pr.sa}-${pr.role}" => pr }
 
-resource "google_folder_iam_member" "folder_browser" {
-  count  = var.enable_cloudbuild_deploy ? 1 : 0
-  folder = var.folder_id
-  role   = "roles/browser"
-  member = "serviceAccount:${module.project.service_account_email}"
+  project = module.project.project_id
+  role    = each.value.role
+  member  = "serviceAccount:${each.value.sa}"
 }
 
 resource "google_folder_iam_member" "folder_network_viewer" {
-  count  = var.enable_cloudbuild_deploy ? 1 : 0
+  for_each = var.app_infra_pipeline_service_accounts
+
   folder = var.folder_id
   role   = "roles/compute.networkViewer"
-  member = "serviceAccount:${module.project.service_account_email}"
+  member = "serviceAccount:${each.value}"
 }
 
-# Allow Cloud Build SA to impersonate deployment SA
-resource "google_service_account_iam_member" "cloudbuild_terraform_sa_impersonate_permissions" {
-  count              = var.enable_cloudbuild_deploy ? 1 : 0
-  service_account_id = module.project.service_account_name
-  role               = "roles/iam.serviceAccountTokenCreator"
-  member             = "serviceAccount:${var.cloudbuild_sa}"
+resource "google_compute_subnetwork_iam_member" "service_account_role_to_vpc_subnets" {
+  provider = google-beta
+  for_each = { for nr in local.network_user_role : "${nr.repo}-${nr.subnet}-${nr.sa}" => nr }
+
+  subnetwork = each.value.subnet
+  role       = "roles/compute.networkUser"
+  region     = each.value.region
+  project    = var.shared_vpc_host_project_id
+  member     = "serviceAccount:${each.value.sa}"
 }

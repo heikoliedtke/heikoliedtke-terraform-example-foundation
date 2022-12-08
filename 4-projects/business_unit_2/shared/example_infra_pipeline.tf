@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
+locals {
+  repo_names = ["bu2-example-app"]
+}
+
 module "app_infra_cloudbuild_project" {
-  source                      = "../../modules/single_project"
-  impersonate_service_account = var.terraform_service_account
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = data.google_active_folder.common.name
-  environment                 = "common"
-  alert_spent_percents        = var.alert_spent_percents
-  alert_pubsub_topic          = var.alert_pubsub_topic
-  budget_amount               = var.budget_amount
-  project_prefix              = var.project_prefix
+  source = "../../modules/single_project"
+  count  = local.enable_cloudbuild_deploy ? 1 : 0
+
+  org_id          = local.org_id
+  billing_account = local.billing_account
+  folder_id       = local.common_folder_name
+  environment     = "common"
+  project_budget  = var.project_budget
+  project_prefix  = local.project_prefix
   activate_apis = [
     "cloudbuild.googleapis.com",
     "sourcerepo.googleapis.com",
@@ -43,12 +46,27 @@ module "app_infra_cloudbuild_project" {
 }
 
 module "infra_pipelines" {
-  source                      = "../../modules/infra_pipelines"
-  impersonate_service_account = var.terraform_service_account
-  cloudbuild_project_id       = module.app_infra_cloudbuild_project.project_id
-  project_prefix              = var.project_prefix
-  billing_account             = var.billing_account
+  source = "../../modules/infra_pipelines"
+  count  = local.enable_cloudbuild_deploy ? 1 : 0
+
+  org_id                      = local.org_id
+  cloudbuild_project_id       = module.app_infra_cloudbuild_project[0].project_id
+  cloud_builder_artifact_repo = local.cloud_builder_artifact_repo
+  remote_tfstate_bucket       = local.projects_remote_bucket_tfstate
+  project_prefix              = local.project_prefix
+  billing_account             = local.billing_account
   default_region              = var.default_region
-  app_infra_repos             = ["bu2-example-app"]
+  app_infra_repos             = local.repo_names
+  private_worker_pool_id      = local.cloud_build_private_worker_pool_id
 }
 
+/**
+ * When Jenkins CICD is used for deployment this resource
+ * is created to terraform validation works.
+ * Without this resource, this module creates zero resources
+ * and it breaks terraform validation throwing the error below:
+ * ERROR: [Terraform plan json does not contain resource_changes key]
+ */
+resource "null_resource" "jenkins_cicd" {
+  count = !local.enable_cloudbuild_deploy ? 1 : 0
+}

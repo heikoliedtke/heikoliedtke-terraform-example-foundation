@@ -18,10 +18,24 @@
   Bootstrap GCP Organization.
 *************************************************/
 locals {
-  parent = var.parent_folder != "" ? "folders/${var.parent_folder}" : "organizations/${var.org_id}"
+  // The bootstrap module will enforce that only identities
+  // in the list "org_project_creators" will have the Project Creator role,
+  // so the granular service accounts for each step need to be added to the list.
+  step_terraform_sa = [
+    "serviceAccount:${google_service_account.terraform-env-sa["bootstrap"].email}",
+    "serviceAccount:${google_service_account.terraform-env-sa["org"].email}",
+    "serviceAccount:${google_service_account.terraform-env-sa["env"].email}",
+    "serviceAccount:${google_service_account.terraform-env-sa["net"].email}",
+    "serviceAccount:${google_service_account.terraform-env-sa["proj"].email}",
+  ]
+  org_project_creators = distinct(concat(var.org_project_creators, local.step_terraform_sa))
+  parent               = var.parent_folder != "" ? "folders/${var.parent_folder}" : "organizations/${var.org_id}"
   org_admins_org_iam_permissions = var.org_policy_admin_role == true ? [
     "roles/orgpolicy.policyAdmin", "roles/resourcemanager.organizationAdmin", "roles/billing.user"
   ] : ["roles/resourcemanager.organizationAdmin", "roles/billing.user"]
+  bucket_self_link_prefix = "https://www.googleapis.com/storage/v1/b/"
+  group_org_admins        = var.groups.create_groups ? var.groups.required_groups.group_org_admins : var.group_org_admins
+  group_billing_admins    = var.groups.create_groups ? var.groups.required_groups.group_billing_admins : var.group_billing_admins
 }
 
 resource "google_folder" "bootstrap" {
@@ -30,18 +44,21 @@ resource "google_folder" "bootstrap" {
 }
 
 module "seed_bootstrap" {
-  source                         = "terraform-google-modules/bootstrap/google"
-  version                        = "~> 2.1"
+  source  = "terraform-google-modules/bootstrap/google"
+  version = "~> 6.3"
+
   org_id                         = var.org_id
   folder_id                      = google_folder.bootstrap.id
   project_id                     = "${var.project_prefix}-b-seed"
   state_bucket_name              = "${var.bucket_prefix}-b-tfstate"
+  force_destroy                  = var.bucket_force_destroy
   billing_account                = var.billing_account
-  group_org_admins               = var.group_org_admins
-  group_billing_admins           = var.group_billing_admins
+  group_org_admins               = local.group_org_admins
+  group_billing_admins           = local.group_billing_admins
   default_region                 = var.default_region
-  org_project_creators           = var.org_project_creators
+  org_project_creators           = local.org_project_creators
   sa_enable_impersonation        = true
+  create_terraform_sa            = false
   parent_folder                  = var.parent_folder == "" ? "" : local.parent
   org_admins_org_iam_permissions = local.org_admins_org_iam_permissions
   project_prefix                 = var.project_prefix
@@ -74,25 +91,14 @@ module "seed_bootstrap" {
     "pubsub.googleapis.com",
     "securitycenter.googleapis.com",
     "accesscontextmanager.googleapis.com",
-    "billingbudgets.googleapis.com"
+    "billingbudgets.googleapis.com",
+    "essentialcontacts.googleapis.com"
   ]
 
-  sa_org_iam_permissions = [
-    "roles/accesscontextmanager.policyAdmin",
-    "roles/billing.user",
-    "roles/compute.networkAdmin",
-    "roles/compute.xpnAdmin",
-    "roles/iam.securityAdmin",
-    "roles/iam.serviceAccountAdmin",
-    "roles/logging.configWriter",
-    "roles/orgpolicy.policyAdmin",
-    "roles/resourcemanager.projectCreator",
-    "roles/resourcemanager.folderAdmin",
-    "roles/securitycenter.notificationConfigEditor",
-    "roles/resourcemanager.organizationViewer"
-  ]
+  sa_org_iam_permissions = []
 }
 
+<<<<<<< HEAD
 
 
 // Comment-out the cloudbuild_bootstrap module and its outputs if you want to use Jenkins instead of Cloud Build
@@ -256,3 +262,5 @@ resource "google_folder_iam_member" "folder_tf_compute_security_resource_admin" 
 #   role   = "roles/browser"
 #   member = "serviceAccount:${module.jenkins_bootstrap.jenkins_agent_sa_email}"
 # }
+=======
+>>>>>>> origin

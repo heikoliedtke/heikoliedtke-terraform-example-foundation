@@ -1,5 +1,19 @@
 # Changelog
 
+### [2.3.1](https://www.github.com/terraform-google-modules/terraform-example-foundation/compare/v2.3.0...v2.3.1) (2021-10-15)
+
+
+### Bug Fixes
+
+* upgrade cloud router module version ([#559](https://www.github.com/terraform-google-modules/terraform-example-foundation/issues/559)) ([b67e62a](https://www.github.com/terraform-google-modules/terraform-example-foundation/commit/b67e62adf5e7431209a02dc4b70c3d793db5c6eb))
+
+## [2.3.0](https://www.github.com/terraform-google-modules/terraform-example-foundation/compare/v2.2.0...v2.3.0) (2021-09-02)
+
+
+### Features
+
+* replace scc gcloud provisioner with native resource ([#514](https://www.github.com/terraform-google-modules/terraform-example-foundation/issues/514)) ([d2cdfb6](https://www.github.com/terraform-google-modules/terraform-example-foundation/commit/d2cdfb6855b6b26e18358a7456247e93d8861e6d))
+
 ## [2.2.0](https://www.github.com/terraform-google-modules/terraform-example-foundation/compare/v2.1.1...v2.2.0) (2021-07-16)
 
 

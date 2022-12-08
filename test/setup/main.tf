@@ -1,5 +1,5 @@
 /**
- * Copyright 2021 Google LLC
+ * Copyright 2021-2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,46 @@
  * limitations under the License.
  */
 
-resource "random_id" "random_project_id_suffix" {
-  byte_length = 2
+locals {
+  //project IDs must start with a letter.
+  //Max length for project_prefix is 3, basde in the projects create in the foundation
+  project_prefix = "${random_string.one_letter.result}${random_string.two_alphanumeric.result}"
+}
+
+resource "random_string" "suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
+resource "random_string" "one_letter" {
+  length  = 1
+  numeric = false
+  special = false
+  upper   = false
+}
+
+resource "random_string" "two_alphanumeric" {
+  length  = 2
+  special = false
+  upper   = false
 }
 
 resource "google_folder" "test_folder" {
-  display_name = "test_foundation_folder_${random_id.random_project_id_suffix.hex}"
+  display_name = "test_foundation_folder_${random_string.suffix.result}"
   parent       = "folders/${var.folder_id}"
 }
 
 module "project" {
   source  = "terraform-google-modules/project-factory/google"
-  version = "~> 10.1"
+  version = "~> 14.0"
 
-  name              = "ci-foundation"
-  random_project_id = true
-  org_id            = var.org_id
-  folder_id         = var.folder_id
-  billing_account   = var.billing_account
+  name                     = "ci-foundation-${random_string.suffix.result}"
+  random_project_id        = true
+  random_project_id_length = 4
+  org_id                   = var.org_id
+  folder_id                = var.folder_id
+  billing_account          = var.billing_account
 
   activate_apis = [
     "cloudresourcemanager.googleapis.com",
@@ -47,5 +69,6 @@ module "project" {
     "securitycenter.googleapis.com",
     "servicenetworking.googleapis.com",
     "billingbudgets.googleapis.com",
+    "essentialcontacts.googleapis.com",
   ]
 }

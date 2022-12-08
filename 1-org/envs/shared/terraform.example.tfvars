@@ -14,29 +14,27 @@
  * limitations under the License.
  */
 
-// Must include the domain of the organization you are deploying the foundation.
+# Must include the domain of the organization you are deploying the foundation.
 domains_to_allow = ["example.com"]
 
-billing_data_users = "gcp-billing-admins@example.com"
+essential_contacts_domains_to_allow = ["@example.com"]
+
+billing_data_users = "gcp-billing-data-users@example.com"
 
 audit_data_users = "gcp-security-admins@example.com"
 
-org_id = "000000000000"
-
-billing_account = "000000-000000-000000"
-
-terraform_service_account = "org-terraform@example-project-2334.iam.gserviceaccount.com"
-
-default_region = "us-central1"
-
 scc_notification_name = "scc-notify"
 
-// Optional - for an organization with existing projects or for development/validation.
-// Must be the same value used in step 0-bootstrap.
-//parent_folder = "01234567890"
+remote_state_bucket = "REMOTE_STATE_BUCKET"
 
 //scc_notification_filter = "state=\\\"ACTIVE\\\""
 
+//enable_hub_and_spoke = true
+
 //create_access_context_manager_access_policy = false
 
-//enable_hub_and_spoke = true
+// Optional - If you are deploying Foundation Example in a parent folder
+// consider using below create_unique_tag_key var because as Tag Keys are
+// unique organization-wide it will add a random suffix at each tag key
+
+//create_unique_tag_key = true

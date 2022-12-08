@@ -14,21 +14,30 @@
  * limitations under the License.
  */
 
+locals {
+  hub_and_spoke_roles = [
+    "roles/compute.instanceAdmin",
+    "roles/iam.serviceAccountAdmin",
+    "roles/resourcemanager.projectIamAdmin",
+    "roles/iam.serviceAccountUser",
+  ]
+}
+
 /******************************************
   Projects for log sinks
 *****************************************/
 
 module "org_audit_logs" {
-  source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  default_service_account     = "deprivilege"
-  name                        = "${var.project_prefix}-c-logging"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = google_folder.common.id
-  activate_apis               = ["logging.googleapis.com", "bigquery.googleapis.com", "billingbudgets.googleapis.com"]
+  source                   = "terraform-google-modules/project-factory/google"
+  version                  = "~> 14.0"
+  random_project_id        = true
+  random_project_id_length = 4
+  default_service_account  = "deprivilege"
+  name                     = "${local.project_prefix}-c-logging"
+  org_id                   = local.org_id
+  billing_account          = local.billing_account
+  folder_id                = google_folder.common.id
+  activate_apis            = ["logging.googleapis.com", "bigquery.googleapis.com", "billingbudgets.googleapis.com"]
 
   labels = {
     environment       = "production"
@@ -39,22 +48,22 @@ module "org_audit_logs" {
     business_code     = "abcd"
     env_code          = "p"
   }
-  budget_alert_pubsub_topic   = var.org_audit_logs_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.org_audit_logs_project_alert_spent_percents
-  budget_amount               = var.org_audit_logs_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.org_audit_logs_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.org_audit_logs_alert_spent_percents
+  budget_amount               = var.project_budget.org_audit_logs_budget_amount
 }
 
 module "org_billing_logs" {
-  source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  default_service_account     = "deprivilege"
-  name                        = "${var.project_prefix}-c-billing-logs"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = google_folder.common.id
-  activate_apis               = ["logging.googleapis.com", "bigquery.googleapis.com", "billingbudgets.googleapis.com"]
+  source                   = "terraform-google-modules/project-factory/google"
+  version                  = "~> 14.0"
+  random_project_id        = true
+  random_project_id_length = 4
+  default_service_account  = "deprivilege"
+  name                     = "${local.project_prefix}-c-billing-logs"
+  org_id                   = local.org_id
+  billing_account          = local.billing_account
+  folder_id                = google_folder.common.id
+  activate_apis            = ["logging.googleapis.com", "bigquery.googleapis.com", "billingbudgets.googleapis.com"]
 
   labels = {
     environment       = "production"
@@ -65,9 +74,9 @@ module "org_billing_logs" {
     business_code     = "abcd"
     env_code          = "p"
   }
-  budget_alert_pubsub_topic   = var.org_billing_logs_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.org_billing_logs_project_alert_spent_percents
-  budget_amount               = var.org_billing_logs_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.org_billing_logs_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.org_billing_logs_alert_spent_percents
+  budget_amount               = var.project_budget.org_billing_logs_budget_amount
 }
 
 /******************************************
@@ -75,16 +84,16 @@ module "org_billing_logs" {
 *****************************************/
 
 module "org_secrets" {
-  source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  default_service_account     = "deprivilege"
-  name                        = "${var.project_prefix}-c-secrets"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = google_folder.common.id
-  activate_apis               = ["logging.googleapis.com", "secretmanager.googleapis.com", "billingbudgets.googleapis.com"]
+  source                   = "terraform-google-modules/project-factory/google"
+  version                  = "~> 14.0"
+  random_project_id        = true
+  random_project_id_length = 4
+  default_service_account  = "deprivilege"
+  name                     = "${local.project_prefix}-c-secrets"
+  org_id                   = local.org_id
+  billing_account          = local.billing_account
+  folder_id                = google_folder.common.id
+  activate_apis            = ["logging.googleapis.com", "secretmanager.googleapis.com", "billingbudgets.googleapis.com"]
 
   labels = {
     environment       = "production"
@@ -95,9 +104,9 @@ module "org_secrets" {
     business_code     = "abcd"
     env_code          = "p"
   }
-  budget_alert_pubsub_topic   = var.org_secrets_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.org_secrets_project_alert_spent_percents
-  budget_amount               = var.org_secrets_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.org_secrets_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.org_secrets_alert_spent_percents
+  budget_amount               = var.project_budget.org_secrets_budget_amount
 }
 
 /******************************************
@@ -105,16 +114,16 @@ module "org_secrets" {
 *****************************************/
 
 module "interconnect" {
-  source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  default_service_account     = "deprivilege"
-  name                        = "${var.project_prefix}-c-interconnect"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = google_folder.common.id
-  activate_apis               = ["billingbudgets.googleapis.com", "compute.googleapis.com"]
+  source                   = "terraform-google-modules/project-factory/google"
+  version                  = "~> 14.0"
+  random_project_id        = true
+  random_project_id_length = 4
+  default_service_account  = "deprivilege"
+  name                     = "${local.project_prefix}-c-interconnect"
+  org_id                   = local.org_id
+  billing_account          = local.billing_account
+  folder_id                = google_folder.common.id
+  activate_apis            = ["billingbudgets.googleapis.com", "compute.googleapis.com"]
 
   labels = {
     environment       = "production"
@@ -125,9 +134,9 @@ module "interconnect" {
     business_code     = "abcd"
     env_code          = "p"
   }
-  budget_alert_pubsub_topic   = var.interconnect_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.interconnect_project_alert_spent_percents
-  budget_amount               = var.interconnect_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.interconnect_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.interconnect_alert_spent_percents
+  budget_amount               = var.project_budget.interconnect_budget_amount
 }
 
 /******************************************
@@ -135,16 +144,16 @@ module "interconnect" {
 *****************************************/
 
 module "scc_notifications" {
-  source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  default_service_account     = "deprivilege"
-  name                        = "${var.project_prefix}-c-scc"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = google_folder.common.id
-  activate_apis               = ["logging.googleapis.com", "pubsub.googleapis.com", "securitycenter.googleapis.com", "billingbudgets.googleapis.com"]
+  source                   = "terraform-google-modules/project-factory/google"
+  version                  = "~> 14.0"
+  random_project_id        = true
+  random_project_id_length = 4
+  default_service_account  = "deprivilege"
+  name                     = "${local.project_prefix}-c-scc"
+  org_id                   = local.org_id
+  billing_account          = local.billing_account
+  folder_id                = google_folder.common.id
+  activate_apis            = ["logging.googleapis.com", "pubsub.googleapis.com", "securitycenter.googleapis.com", "billingbudgets.googleapis.com"]
 
   labels = {
     environment       = "production"
@@ -155,9 +164,9 @@ module "scc_notifications" {
     business_code     = "abcd"
     env_code          = "p"
   }
-  budget_alert_pubsub_topic   = var.scc_notifications_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.scc_notifications_project_alert_spent_percents
-  budget_amount               = var.scc_notifications_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.scc_notifications_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.scc_notifications_alert_spent_percents
+  budget_amount               = var.project_budget.scc_notifications_budget_amount
 }
 
 /******************************************
@@ -165,15 +174,15 @@ module "scc_notifications" {
 *****************************************/
 
 module "dns_hub" {
-  source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  default_service_account     = "deprivilege"
-  name                        = "${var.project_prefix}-c-dns-hub"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = google_folder.common.id
+  source                   = "terraform-google-modules/project-factory/google"
+  version                  = "~> 14.0"
+  random_project_id        = true
+  random_project_id_length = 4
+  default_service_account  = "deprivilege"
+  name                     = "${local.project_prefix}-c-dns-hub"
+  org_id                   = local.org_id
+  billing_account          = local.billing_account
+  folder_id                = google_folder.common.id
 
   activate_apis = [
     "compute.googleapis.com",
@@ -193,9 +202,9 @@ module "dns_hub" {
     business_code     = "abcd"
     env_code          = "p"
   }
-  budget_alert_pubsub_topic   = var.dns_hub_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.dns_hub_project_alert_spent_percents
-  budget_amount               = var.dns_hub_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.dns_hub_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.dns_hub_alert_spent_percents
+  budget_amount               = var.project_budget.dns_hub_budget_amount
 }
 
 /******************************************
@@ -203,16 +212,16 @@ module "dns_hub" {
 *****************************************/
 
 module "base_network_hub" {
-  source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  count                       = var.enable_hub_and_spoke ? 1 : 0
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  default_service_account     = "deprivilege"
-  name                        = "${var.project_prefix}-c-base-net-hub"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = google_folder.common.id
+  source                   = "terraform-google-modules/project-factory/google"
+  version                  = "~> 14.0"
+  count                    = var.enable_hub_and_spoke ? 1 : 0
+  random_project_id        = true
+  random_project_id_length = 4
+  default_service_account  = "deprivilege"
+  name                     = "${local.project_prefix}-c-base-net-hub"
+  org_id                   = local.org_id
+  billing_account          = local.billing_account
+  folder_id                = google_folder.common.id
 
   activate_apis = [
     "compute.googleapis.com",
@@ -232,9 +241,17 @@ module "base_network_hub" {
     business_code     = "abcd"
     env_code          = "p"
   }
-  budget_alert_pubsub_topic   = var.base_net_hub_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.base_net_hub_project_alert_spent_percents
-  budget_amount               = var.base_net_hub_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.base_net_hub_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.base_net_hub_alert_spent_percents
+  budget_amount               = var.project_budget.base_net_hub_budget_amount
+}
+
+resource "google_project_iam_member" "network_sa_base" {
+  for_each = toset(var.enable_hub_and_spoke ? local.hub_and_spoke_roles : [])
+
+  project = module.base_network_hub[0].project_id
+  role    = each.key
+  member  = "serviceAccount:${local.networks_step_terraform_service_account_email}"
 }
 
 /******************************************
@@ -242,16 +259,16 @@ module "base_network_hub" {
 *****************************************/
 
 module "restricted_network_hub" {
-  source                      = "terraform-google-modules/project-factory/google"
-  version                     = "~> 10.1"
-  count                       = var.enable_hub_and_spoke ? 1 : 0
-  random_project_id           = "true"
-  impersonate_service_account = var.terraform_service_account
-  default_service_account     = "deprivilege"
-  name                        = "${var.project_prefix}-c-restricted-net-hub"
-  org_id                      = var.org_id
-  billing_account             = var.billing_account
-  folder_id                   = google_folder.common.id
+  source                   = "terraform-google-modules/project-factory/google"
+  version                  = "~> 14.0"
+  count                    = var.enable_hub_and_spoke ? 1 : 0
+  random_project_id        = true
+  random_project_id_length = 4
+  default_service_account  = "deprivilege"
+  name                     = "${local.project_prefix}-c-restricted-net-hub"
+  org_id                   = local.org_id
+  billing_account          = local.billing_account
+  folder_id                = google_folder.common.id
 
   activate_apis = [
     "compute.googleapis.com",
@@ -271,7 +288,15 @@ module "restricted_network_hub" {
     business_code     = "abcd"
     env_code          = "p"
   }
-  budget_alert_pubsub_topic   = var.restricted_net_hub_project_alert_pubsub_topic
-  budget_alert_spent_percents = var.restricted_net_hub_project_alert_spent_percents
-  budget_amount               = var.restricted_net_hub_project_budget_amount
+  budget_alert_pubsub_topic   = var.project_budget.restricted_net_hub_alert_pubsub_topic
+  budget_alert_spent_percents = var.project_budget.restricted_net_hub_alert_spent_percents
+  budget_amount               = var.project_budget.restricted_net_hub_budget_amount
+}
+
+resource "google_project_iam_member" "network_sa_restricted" {
+  for_each = toset(var.enable_hub_and_spoke ? local.hub_and_spoke_roles : [])
+
+  project = module.restricted_network_hub[0].project_id
+  role    = each.key
+  member  = "serviceAccount:${local.networks_step_terraform_service_account_email}"
 }

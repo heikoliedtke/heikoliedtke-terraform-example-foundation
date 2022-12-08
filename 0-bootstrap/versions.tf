@@ -18,22 +18,14 @@ terraform {
   required_version = ">= 0.13"
   required_providers {
     google = {
+      // version 4.31.0 removed because of issue https://github.com/hashicorp/terraform-provider-google/issues/12226
       source  = "hashicorp/google"
-      version = ">= 3.50"
-    }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 2.1"
-    }
-
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 2.3"
+      version = ">= 3.50, != 4.31.0"
     }
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-example-foundation:bootstrap/v2.2.0"
+    module_name = "blueprints/terraform/terraform-example-foundation:bootstrap/v2.3.1"
   }
 
 }
